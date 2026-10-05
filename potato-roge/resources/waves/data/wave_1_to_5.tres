@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WaveData" format=3 uid="uid://j87gglxwhe0q"]
+
+[ext_resource type="Script" uid="uid://cgwpfl4bk5aaf" path="res://resources/waves/wave_data.gd" id="1_cx7cn"]
+[ext_resource type="Script" uid="uid://d02ugf6iyx673" path="res://resources/waves/wave_unit_data.gd" id="2_78wao"]
+[ext_resource type="PackedScene" uid="uid://bopya7w7in1eh" path="res://scenes/enemy/enemy_chaser_slow.tscn" id="3_a0tld"]
+
+[sub_resource type="Resource" id="Resource_3lh5k"]
+script = ExtResource("2_78wao")
+unit_scene = ExtResource("3_a0tld")
+weight = 6.0
+metadata/_custom_type_script = "uid://d02ugf6iyx673"
+
+[resource]
+script = ExtResource("1_cx7cn")
+from = 1
+to = 5
+units = Array[ExtResource("2_78wao")]([SubResource("Resource_3lh5k")])
+spawn_type = 0
+fixed_spawn_time = 2.0
+min_spawn_time = 0.5
+max_spawn_time = 2.0
+metadata/_custom_type_script = "uid://cgwpfl4bk5aaf"

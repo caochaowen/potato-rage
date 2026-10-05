@@ -1,0 +1,80 @@
+[gd_scene format=3 uid="uid://c4up08x2c2bsj"]
+
+[ext_resource type="Script" uid="uid://db5cavhlxyoxv" path="res://scripts/arena.gd" id="1_jx0ua"]
+[ext_resource type="Texture2D" uid="uid://cy4xfx762bxgb" path="res://asserts/sprites/BG.png" id="2_u52cf"]
+[ext_resource type="Texture2D" uid="uid://ov4fmsbglo55" path="res://asserts/sprites/Map.png" id="3_ii07k"]
+[ext_resource type="PackedScene" uid="uid://dhbqituotdf36" path="res://scenes/player/player_well_rounded.tscn" id="4_6w4xk"]
+[ext_resource type="Script" uid="uid://cd4eesmxruiuh" path="res://scripts/camera_2d.gd" id="5_2ml6w"]
+[ext_resource type="PackedScene" uid="uid://pvqf6awhus2v" path="res://scenes/ui/upgrade_container/upgrade_panel.tscn" id="9_6w4xk"]
+[ext_resource type="Script" uid="uid://docs31qsexpyt" path="res://scenes/arena/spawner.gd" id="16_t3vx8"]
+[ext_resource type="Script" uid="uid://cgwpfl4bk5aaf" path="res://resources/waves/wave_data.gd" id="17_tp84n"]
+[ext_resource type="Resource" uid="uid://j87gglxwhe0q" path="res://resources/waves/data/wave_1_to_5.tres" id="18_8kk48"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_tp84n"]
+font_size = 64
+
+[sub_resource type="LabelSettings" id="LabelSettings_8kk48"]
+font_size = 64
+
+[node name="Arena" type="Node2D" unique_id=1319843685 node_paths=PackedStringArray("player")]
+script = ExtResource("1_jx0ua")
+player = NodePath("PlayerWellRounded")
+normal_color = Color(0.9779369, 0.97793704, 0.9779369, 1)
+blocked_color = Color(1, 0.2901961, 0.45490196, 1)
+critical_color = Color(0.99607843, 0.78039217, 0.39215687, 1)
+hp_color = Color(0, 0.627451, 0.48235294, 1)
+
+[node name="BlackBG" type="Sprite2D" parent="." unique_id=21366177]
+scale = Vector2(2, 2)
+texture = ExtResource("2_u52cf")
+
+[node name="GrassBG" type="Sprite2D" parent="." unique_id=1617606432]
+scale = Vector2(2, 2)
+texture = ExtResource("3_ii07k")
+
+[node name="PlayerWellRounded" parent="." unique_id=706515387 instance=ExtResource("4_6w4xk")]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=735507872]
+script = ExtResource("5_2ml6w")
+
+[node name="Spawner" type="Node2D" parent="." unique_id=1632401152]
+script = ExtResource("16_t3vx8")
+waves_data = Array[ExtResource("17_tp84n")]([ExtResource("18_8kk48")])
+
+[node name="SpawnerTimer" type="Timer" parent="Spawner" unique_id=1478617104]
+
+[node name="WaveTimer" type="Timer" parent="Spawner" unique_id=366860268]
+
+[node name="GameUI" type="CanvasLayer" parent="." unique_id=1399029035]
+
+[node name="WaveIndexLabel" type="Label" parent="GameUI" unique_id=73369990]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -102.0
+offset_top = 20.0
+offset_right = 102.0
+offset_bottom = 97.333336
+grow_horizontal = 2
+text = "Wave1"
+label_settings = SubResource("LabelSettings_tp84n")
+
+[node name="WaveTimeLabel" type="Label" parent="GameUI" unique_id=1769394282]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -102.0
+offset_top = 100.0
+offset_right = 102.0
+offset_bottom = 177.33334
+grow_horizontal = 2
+text = "10"
+label_settings = SubResource("LabelSettings_8kk48")
+
+[node name="UpgradePanel" parent="GameUI" unique_id=1030980706 instance=ExtResource("9_6w4xk")]
+
+[connection signal="on_wave_completed" from="Spawner" to="." method="_on_spawner_on_wave_completed"]
+[connection signal="timeout" from="Spawner/SpawnerTimer" to="Spawner" method="_on_spawner_timer_timeout"]
+[connection signal="timeout" from="Spawner/WaveTimer" to="Spawner" method="_on_wave_timer_timeout"]

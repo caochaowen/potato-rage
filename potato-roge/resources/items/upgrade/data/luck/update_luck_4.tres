@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemUpgrade" format=3 uid="uid://pmua3ta0uqll"]
+
+[ext_resource type="Texture2D" uid="uid://ccm3apetb532i" path="res://asserts/sprites/Upgrades/1.png" id="1_004wy"]
+[ext_resource type="Script" uid="uid://kwxiathf6c6p" path="res://resources/items/upgrade/item_upgrade.gd" id="2_gs42o"]
+
+[resource]
+script = ExtResource("2_gs42o")
+value = 4.0
+description = "+4"
+stat_id = "luck"
+item_name = "luck"
+item_icon = ExtResource("1_004wy")
+item_tier = 2
+item_type = 1
+metadata/_custom_type_script = "uid://kwxiathf6c6p"

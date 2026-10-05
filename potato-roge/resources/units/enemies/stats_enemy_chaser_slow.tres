@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnitStats" format=3 uid="uid://dg38ahi3uymnp"]
+
+[ext_resource type="Texture2D" uid="uid://d1ou504pylric" path="res://asserts/sprites/Enemies/Enemy_1.png" id="1_cneyk"]
+[ext_resource type="Script" uid="uid://ykneenww1dk5" path="res://resources/units/unit_stats.gd" id="1_m42qi"]
+
+[resource]
+script = ExtResource("1_m42qi")
+name = "Chaser Slow"
+type = 1
+icon = ExtResource("1_cneyk")
+health = 6
+damage = 2
+damage_increase_per_wave = 1.5
+speed = 150
+block_chance = 3.0
+metadata/_custom_type_script = "uid://ykneenww1dk5"

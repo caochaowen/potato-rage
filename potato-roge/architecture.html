@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>potato_roge · 代码架构可视化</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --surface-2: #f3f2ef;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --surface-2: #222220;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --surface-2: #222220;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+    --shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  /* ---------- 分类配色（来自校验过的数据可视化色板） ---------- */
+  .cat-core      { --c: #2a78d6; --cd: #3987e5; }
+  .cat-player    { --c: #eb6834; --cd: #d95926; }
+  .cat-enemy     { --c: #1baf7a; --cd: #199e70; }
+  .cat-component { --c: #eda100; --cd: #c98500; }
+  .cat-ui        { --c: #e87ba4; --cd: #d55181; }
+  .cat-scene     { --c: #008300; --cd: #008300; }
+  :root[data-theme="dark"] .cat-core      { --c: #3987e5; }
+  :root[data-theme="dark"] .cat-player    { --c: #d95926; }
+  :root[data-theme="dark"] .cat-enemy     { --c: #199e70; }
+  :root[data-theme="dark"] .cat-component { --c: #c98500; }
+  :root[data-theme="dark"] .cat-ui        { --c: #d55181; }
+  :root[data-theme="dark"] .cat-scene     { --c: #008300; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .cat-core      { --c: #3987e5; }
+    :root:where(:not([data-theme="light"])) .cat-player    { --c: #d95926; }
+    :root:where(:not([data-theme="light"])) .cat-enemy     { --c: #199e70; }
+    :root:where(:not([data-theme="light"])) .cat-component { --c: #c98500; }
+    :root:where(:not([data-theme="light"])) .cat-ui        { --c: #d55181; }
+    :root:where(:not([data-theme="light"])) .cat-scene     { --c: #008300; }
+  }
+
+  /* ---------- 布局 ---------- */
+  .app { display: grid; grid-template-columns: 280px 1fr 440px; height: 100vh; }
+
+  /* ---------- 顶部栏 ---------- */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 18px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+  }
+  .topbar .title { font-size: 17px; font-weight: 700; letter-spacing: .2px; }
+  .topbar .title .accent { color: var(--accent); }
+  .topbar .subtitle { color: var(--text-secondary); font-size: 12.5px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .meta { color: var(--text-muted); font-size: 12px; }
+  .theme-btn {
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-primary); padding: 6px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 12.5px;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+
+  /* ---------- 侧边栏 ---------- */
+  .sidebar {
+    background: var(--surface-1);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 12px;
+    grid-row: 2;
+  }
+  .sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 14px 0 6px; }
+  .sidebar .group:first-child h2 { margin-top: 2px; }
+  .mod-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 9px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; margin-bottom: 2px;
+  }
+  .mod-item:hover { background: var(--surface-2); }
+  .mod-item.active { background: var(--surface-2); border-color: var(--border); }
+  .mod-item .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--c); }
+  .mod-item .name { font-weight: 600; }
+  .mod-item .file { margin-left: auto; color: var(--text-muted); font-size: 11px; font-family: ui-monospace, monospace; }
+
+  /* ---------- 图区 ---------- */
+  .graph-panel { grid-row: 2; display: flex; flex-direction: column; background: var(--page); min-width: 0; }
+  .graph-header {
+    display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    padding: 10px 16px; background: var(--surface-1); border-bottom: 1px solid var(--border);
+  }
+  .legend { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+  .legend .swatch { width: 11px; height: 11px; border-radius: 3px; background: var(--c); }
+  .edge-legend { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-muted); }
+  .edge-legend .line { width: 22px; height: 0; border-top: 2px solid; }
+  .edge-legend .line.extends { border-color: var(--accent); }
+  .edge-legend .line.ref { border-color: var(--text-muted); border-top-width: 1px; }
+  .edge-legend .line.signal { border-color: var(--text-secondary); border-top-style: dashed; }
+  #graph { flex: 1; width: 100%; cursor: grab; }
+  #graph:active { cursor: grabbing; }
+  .graph-tip { padding: 8px 16px; color: var(--text-muted); font-size: 11.5px; border-top: 1px solid var(--border); background: var(--surface-1); }
+
+  .node rect { stroke-width: 2; }
+  .node text.name { font-weight: 600; fill: var(--text-primary); }
+  .node text.kind { fill: var(--c); font-size: 10px; }
+  .node .ring { fill: none; stroke: var(--c); }
+  .node.dim { opacity: 0.18; }
+  .node.selected .ring { stroke-width: 3; }
+
+  .edge { stroke: var(--text-muted); stroke-opacity: 0.55; }
+  .edge.extends { stroke: var(--accent); stroke-width: 2.4; stroke-opacity: 0.9; }
+  .edge.ref { stroke-width: 1.2; }
+  .edge.signal { stroke: var(--text-secondary); stroke-dasharray: 5 4; stroke-width: 1.4; }
+  .edge.dim { opacity: 0.08; }
+  .edge.hl { opacity: 1; stroke-opacity: 1; }
+  .edge-label { font-size: 9.5px; fill: var(--text-muted); pointer-events: none; }
+
+  /* ---------- 详情面板 ---------- */
+  .detail { grid-row: 2; background: var(--surface-1); border-left: 1px solid var(--border); overflow-y: auto; }
+  .detail .empty { padding: 40px 20px; color: var(--text-muted); text-align: center; font-size: 13px; }
+  .detail-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+  .detail-head .badge { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--c); border: 1px solid var(--c); border-radius: 20px; padding: 2px 9px; margin-bottom: 8px; }
+  .detail-head h1 { margin: 0; font-size: 20px; }
+  .detail-head .classline { color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 12px; margin-top: 4px; }
+  .detail-head .path { color: var(--text-muted); font-size: 11px; font-family: ui-monospace, monospace; margin-top: 3px; word-break: break-all; }
+  .detail section { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .detail section h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+  .summary { line-height: 1.7; color: var(--text-secondary); }
+  .summary strong { color: var(--text-primary); }
+
+  .method-chip {
+    display: block; width: 100%; text-align: left;
+    border: 1px solid var(--border); background: var(--surface-2);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer;
+    font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-primary);
+  }
+  .method-chip:hover { border-color: var(--accent); }
+  .method-chip.active { border-color: var(--accent); }
+  .method-chip .mn { font-weight: 700; }
+  .method-chip .ret { color: var(--c); }
+
+  .method-card {
+    border-left: 3px solid var(--accent); background: var(--surface-2);
+    border-radius: 0 8px 8px 0; padding: 10px 12px; margin: 4px 0 12px;
+  }
+  .method-card .sig { font-family: ui-monospace, monospace; font-size: 12.5px; font-weight: 600; }
+  .method-card .desc { color: var(--text-secondary); line-height: 1.7; margin-top: 6px; font-size: 13px; }
+  .method-card .params { margin-top: 8px; }
+  .method-card .param { font-size: 12px; color: var(--text-secondary); margin: 3px 0; }
+  .method-card .param code { font-family: ui-monospace, monospace; color: var(--accent); }
+
+  .codebox { padding: 0; border-bottom: none; }
+  .codebox pre { margin: 0; }
+  .codeline { display: flex; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11.8px; line-height: 1.55; }
+  .codeline .ln { flex: none; width: 34px; text-align: right; padding-right: 12px; color: var(--text-muted); user-select: none; border-right: 1px solid var(--border); margin-right: 12px; opacity: .7; }
+  .codeline .ct { white-space: pre; }
+  .codeline.hl { background: rgba(42,120,214,0.12); background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .codeline.hl .ln { color: var(--c); font-weight: 700; opacity: 1; }
+
+  /* 语法高亮 */
+  .kw { color: #cf4bb1; font-weight: 600; }
+  .st { color: #2f9e44; }
+  .cm { color: var(--text-muted); font-style: italic; }
+  .num { color: #e8590c; }
+  .nd { color: var(--accent); font-weight: 600; }
+  .ann { color: #d55181; }
+  .type { color: #0ca3a3; }
+  :root[data-theme="dark"] .kw { color: #e08be6; }
+  :root[data-theme="dark"] .st { color: #7fd88f; }
+  :root[data-theme="dark"] .num { color: #ffa94d; }
+  :root[data-theme="dark"] .type { color: #63e6be; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <span class="title">🥔 <span class="accent">potato_roge</span> 代码架构可视化</span>
+    <span class="subtitle">模块关系 · 方法浏览 · 源码与注释</span>
+    <span class="spacer"></span>
+    <span class="meta">13 个脚本模块 · 点击节点/列表项查看详情</span>
+    <button class="theme-btn" id="themeBtn">🌓 深浅切换</button>
+  </header>
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="graph-panel">
+    <div class="graph-header" id="legendBar"></div>
+    <svg id="graph"></svg>
+    <div class="graph-tip">拖拽节点调整布局 · 单击节点或左侧列表查看该模块的方法与源码 · 悬停高亮关联关系</div>
+  </main>
+
+  <aside class="detail" id="detail"><div class="empty">← 点击左侧模块或图中节点<br>查看模块功能、方法与源码注释</div></aside>
+</div>
+
+<script>
+"use strict";
+
+/* ================= 分类元数据 ================= */
+const CATS = {
+  core:      { label: '核心 / 基础', c: '#2a78d6', cd: '#3987e5' },
+  player:    { label: '玩家',        c: '#eb6834', cd: '#d95926' },
+  enemy:     { label: '敌人',        c: '#1baf7a', cd: '#199e70' },
+  component: { label: '组件',        c: '#eda100', cd: '#c98500' },
+  ui:        { label: 'UI',          c: '#e87ba4', cd: '#d55181' },
+  scene:     { label: '全局 / 场景', c: '#008300', cd: '#008300' },
+};
+
+/* ================= 模块数据 ================= */
+const MODULES = [
+{
+  id: 'unit', name: 'Unit', class_name: 'Unit', file: 'scripts/unit.gd', category: 'core', base: 'Node2D',
+  summary: '所有战斗单位的<strong>基类</strong>（玩家与敌人的共同祖先）。它不实现移动逻辑，而是封装单位共有的构成与行为：绑定视觉节点（<code>Visuals</code>/<code>Sprite</code>）、血量组件（<code>HealthComponent</code>）、受击闪白（FlashTimer）与格挡判定。子类只需覆盖移动/朝向逻辑即可复用全部受击与死亡处理。',
+  methods: [
+    { name: '_ready', sig: '_ready() -> void', desc: '场景就绪回调：把 <code>stats</code> 传给血量组件 <code>setup()</code>，完成生命值上限与当前值的初始化。', params: [] },
+    { name: 'set_flash_material', sig: 'set_flash_material() -> void', desc: '受击「闪白」效果：给精灵挂上全局闪光材质（<code>Global.FLASH_MATERIAL</code>）并启动 FlashTimer，短暂高亮后由定时器回调恢复。', params: [] },
+    { name: '_on_hurtbox_component_on_damaged', sig: '_on_hurtbox_component_on_damaged(hitbox: HitboxComponent) -> void', desc: '受击统一入口（由 <code>HurtboxComponent.on_damaged</code> 信号触发）。流程：①血量已归零则直接返回；②按 <code>block_chance/100</code> 做<strong>格挡判定</strong>，成功则发格挡飘字并返回；③否则闪白、<code>take_damage</code> 扣血、发伤害飘字。', params: [ { n: 'hitbox', t: 'HitboxComponent', d: '命中本单位的攻击盒，携带伤害/暴击等信息' } ] },
+    { name: '_on_flash_timer_timeout', sig: '_on_flash_timer_timeout() -> void', desc: '闪白定时器结束：把精灵材质置 <code>null</code> 恢复原始外观。', params: [] },
+  ],
+  code: `extends Node2D
+class_name Unit
+
+@export var stats:UnitStats
+
+@onready var visuals: Node2D = %Visuals
+@onready var sprite: Sprite2D = %Sprite
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var health_component: HealrhComponent = $HealthComponent
+@onready var flash_timer: Timer = $FlashTimer
+
+
+func _ready() -> void:
+	health_component.setup(stats)
+
+func set_flash_material() -> void:
+	sprite.material = Global.FLASH_MATERIAL
+	flash_timer.start()
+
+func _on_hurtbox_component_on_damaged(hitbox: HitboxComponent) -> void:
+	if health_component.current_health <= 0:
+		return
+
+	var blocked := Global.get_chance_sucesss(stats.block_chance/100)
+	if blocked:
+		Global.on_create_block_text.emit(self)
+		return
+	set_flash_material()
+
+	health_component.take_damage(hitbox.damage)
+	Global.on_create_damage_text.emit(self, hitbox)
+
+
+func _on_flash_timer_timeout() -> void:
+	sprite.material = null`
+},
+
+{
+  id: 'player', name: 'Player', class_name: 'Player', file: 'scripts/player.gd', category: 'player', base: 'Unit',
+  summary: '<strong>玩家控制</strong>逻辑，继承 <code>Unit</code>。处理 WASD 八方向移动、<strong>冲刺（dash）</strong>机制、跑/待机动画切换、朝向翻转，并把玩家位置钳制在竞技场范围内。冲刺时半透明、禁用碰撞并触发残影（Trail）。',
+  methods: [
+    { name: '_ready', sig: '_ready() -> void', desc: '调用父类 <code>_ready()</code> 完成血量初始化，并把冲刺时长与冷却时间写入对应计时器。', params: [] },
+    { name: '_process', sig: '_process(delta: float) -> void', desc: '每帧主循环：读取输入方向 → 计算速度（冲刺时乘 <code>dash_speed_multi</code>）→ 位移 → 边界钳制（x∈[-950,950]、y∈[-500,500]）→ 尝试冲刺 → 更新动画与朝向。', params: [ { n: 'delta', t: 'float', d: '距上一帧的时间（秒）' } ] },
+    { name: 'update_animations', sig: 'update_animations() -> void', desc: '有移动方向则播放 <code>run</code> 动画，否则播放 <code>idle</code>。', params: [] },
+    { name: 'update_rotation', sig: 'update_rotation() -> void', desc: '朝向翻转：根据水平移动方向把 <code>Visuals</code> 缩放到 (∓0.5, 0.5) 实现左右镜像；无输入则保持。', params: [] },
+    { name: 'start_dash', sig: 'start_dash() -> void', desc: '进入冲刺：置 <code>is_dash</code>、启动冲刺计时器、开始残影、精灵半透明、用 <code>set_deferred</code> 暂禁碰撞体（避免物理引擎安全期冲突）。', params: [] },
+    { name: 'can_dash', sig: 'can_dash() -> bool', desc: '冲刺条件：非冲刺中 且 冷却计时器已停 且 刚按下 <code>dash</code> 键 且 有移动方向。', params: [] },
+    { name: '_on_dash_timer_timeout', sig: '_on_dash_timer_timeout() -> void', desc: '冲刺结束：恢复状态/透明度/碰撞，并把移动方向清零，随后启动冷却计时器。', params: [] },
+  ],
+  code: `extends Unit
+class_name Player
+
+@export var dash_duration := 0.5
+@export var dash_speed_multi := 0.5
+@export var dash_cooldown := 0.5
+
+@onready var dash_timer: Timer = $DashTimer
+@onready var dash_cooldown_timer: Timer = $DashCooldownTimer
+@onready var collision: CollisionShape2D = $CollisionShape2D
+@onready var trail: Trail = %Trail
+
+
+var move_dir:Vector2
+var is_dash := false
+var dash_available := true
+
+func _ready() -> void:
+	super._ready()
+	dash_timer.wait_time = dash_duration
+	dash_cooldown_timer.wait_time = dash_cooldown
+
+func _process(delta: float) -> void:
+	move_dir = Input.get_vector("move_left","move_right","move_up","move_down")
+
+	var current_velocity := move_dir * stats.speed
+	if is_dash:
+		current_velocity *= dash_speed_multi
+	position += current_velocity * delta
+	position.x = clamp(position.x,-950,950)
+	position.y = clamp(position.y,-500,500)
+	if can_dash():
+		start_dash()
+	update_animations()
+	update_rotation()
+
+func update_animations() -> void:
+	if move_dir.length() > 0:
+		animation_player.play("run")
+	else:
+		animation_player.play("idle")
+
+func update_rotation() -> void:
+	if move_dir == Vector2.ZERO:
+		return
+
+	if move_dir.x >= 0.1:
+		visuals.scale = Vector2(-0.5,0.5)
+	else:
+		visuals.scale = Vector2(0.5,0.5)
+
+
+func start_dash() -> void:
+	is_dash = true
+	dash_timer.start()
+	trail.start_trail()
+	visuals.modulate.a = 0.5
+	collision.set_deferred("disabled",true)
+
+func can_dash() -> bool:
+	return not is_dash and dash_cooldown_timer.is_stopped() and Input.is_action_just_pressed("dash") and move_dir != Vector2.ZERO
+
+
+
+
+func _on_dash_timer_timeout() -> void:
+	is_dash = false
+	visuals.modulate.a = 1.0
+	move_dir = Vector2.ZERO
+	collision.set_deferred("disabled",false)
+	dash_cooldown_timer.start()`
+},
+
+{
+  id: 'enemy', name: 'Enemy', class_name: 'Enemy', file: 'scripts/enemy.gd', category: 'enemy', base: 'Unit',
+  summary: '<strong>敌人 AI</strong>，继承 <code>Unit</code>。实现朝玩家追踪移动、<strong>群体分离（flock）</strong>避免同类堆叠、与玩家保持一定距离（>60 不贴脸），并根据相对位置翻转朝向。所有敌方变体（chaser/charger/shooter）共用此脚本。',
+  methods: [
+    { name: '_process', sig: '_process(delta: float) -> void', desc: '每帧：若不可移动或不能朝玩家移动则提前返回；否则按 <code>get_move_direction()</code> 的方向以 <code>stats.speed</code> 位移。', params: [ { n: 'delta', t: 'float', d: '距上一帧的时间（秒）' } ] },
+    { name: 'get_move_direction', sig: 'get_move_direction() -> Vector2', desc: '计算移动方向：基础方向为朝玩家；再遍历视野区（<code>VisionArea</code>）内重叠的同类，叠加 <code>flock_push</code> 分离力，使敌人彼此推开、不重叠。玩家无效时返回零向量。', params: [] },
+    { name: 'update_rotation', sig: 'update_rotation() -> void', desc: '朝向翻转：以「自身 x 是否小于玩家 x」判断向右还是向左，缩放 <code>Visuals</code> 实现镜像。', params: [] },
+    { name: 'can_move_towards_player', sig: 'can_move_towards_player() -> bool', desc: '判定玩家实例是否有效，且与玩家距离 > 60（避免挤进玩家体内）。', params: [] },
+  ],
+  code: `extends Unit
+class_name Enemy
+
+@export var flock_push :=20.0
+@onready var vision_area: Area2D = $VisionArea
+
+var can_move := true
+
+func _process(delta: float) -> void:
+	if not can_move:
+		return
+
+	if not can_move_towards_player():
+		return
+
+	position += get_move_direction() * stats.speed * delta
+	update_rotation
+
+func get_move_direction() -> Vector2:
+	if not is_instance_valid(Global.player):
+		return Vector2.ZERO
+
+	var direction := global_position.direction_to(Global.player.global_position)
+	for area: Node2D in vision_area.get_overlapping_areas():
+		if area!=self and area.is_inside_tree():
+			var vector := global_position - area.global_position
+			direction += flock_push * vector.normalized() / vector.length()
+
+	return direction
+
+
+func update_rotation() -> void:
+	if not is_instance_valid(Global.player):
+		return
+
+	var player_pos := Global.player.global_position
+	var moving_right := global_position.x <player_pos.x
+	visuals.scale = Vector2(-0.5, 0.5) if moving_right else Vector2(0.5,0.5)
+
+func can_move_towards_player() -> bool:
+	return is_instance_valid(Global.player) and global_position.distance_to(Global.player.global_position) > 60`
+},
+
+{
+  id: 'arena', name: 'Arena', class_name: 'Arena', file: 'scripts/arena.gd', category: 'scene', base: 'Node2D',
+  summary: '<strong>主场景控制器</strong>。持有玩家引用并写入 <code>Global.player</code> 供其它模块（敌人、摄像机）访问；连接全局信号，负责<strong>生成伤害/格挡飘字</strong>（FloatingText）。是运行时装配的枢纽。',
+  methods: [
+    { name: '_ready', sig: '_ready() -> void', desc: '把玩家引用登记到 <code>Global.player</code>，并连接 <code>Global</code> 的格挡/伤害两个飘字信号到本节点的处理函数。', params: [] },
+    { name: 'create_floating_text', sig: 'create_floating_text(unit: Node2D) -> FloatingText', desc: '实例化飘字场景、挂到场景树根节点、在单位周围随机方位（半径 35）设置出生点，返回该飘字实例。', params: [ { n: 'unit', t: 'Node2D', d: '飘字依附的目标单位（决定出生位置）' } ] },
+    { name: '_on_create_block_text', sig: '_on_create_block_text(unit: Node2D) -> void', desc: '生成「Blocked!」格挡飘字，使用 <code>blocked_color</code>。', params: [ { n: 'unit', t: 'Node2D', d: '触发格挡的单位' } ] },
+    { name: '_on_create_damage_text', sig: '_on_create_damage_text(unit: Node2D, hitbox: HitboxComponent) -> void', desc: '生成伤害数值飘字：暴击用 <code>critical_color</code>，否则 <code>normal_color</code>；文字为 <code>hitbox.damage</code>。', params: [ { n: 'unit', t: 'Node2D', d: '受击单位' }, { n: 'hitbox', t: 'HitboxComponent', d: '携带伤害与暴击标记的攻击盒' } ] },
+  ],
+  code: `extends Node2D
+class_name Arena
+
+@export var player:Player
+@export var normal_color:Color
+@export var blocked_color:Color
+@export var critical_color:Color
+@export var hp_color:Color
+
+func _ready() -> void:
+	Global.player = player
+	Global.on_create_block_text.connect(_on_create_block_text)
+	Global.on_create_damage_text.connect(_on_create_damage_text)
+
+func create_floating_text(unit:Node2D)->FloatingText:
+	var instance:=Global.FLOATING_TEXT.instantiate() as FloatingText
+	get_tree().root.add_child(instance)
+	var random_pos := randf_range(0,TAU)*35
+	var spawn_pos := unit.global_position + Vector2.RIGHT.rotated(random_pos)
+	instance.global_position = spawn_pos
+	return instance
+
+func _on_create_block_text(unit: Node2D) -> void:
+	var text := create_floating_text(unit)
+	text.setup("Blocked!",blocked_color)
+
+func _on_create_damage_text(unit: Node2D,hitbox: HitboxComponent) ->void:
+	var text := create_floating_text(unit)
+	var color := critical_color if hitbox.critical else normal_color
+	text.setup(str(hitbox.damage),color)`
+},
+
+{
+  id: 'camera', name: 'Camera', class_name: 'Camera', file: 'scripts/camera_2d.gd', category: 'scene', base: 'Camera2D',
+  summary: '<strong>摄像机跟随</strong>：每帧把摄像机位置锁定到玩家位置，实现镜头跟拍。玩家被销毁时会用 <code>is_instance_valid</code> 守卫避免空引用。',
+  methods: [
+    { name: '_process', sig: '_process(delta: float) -> void', desc: '若玩家有效，把摄像机全局位置设为玩家位置，实现逐帧跟随。', params: [ { n: 'delta', t: 'float', d: '距上一帧的时间（秒）' } ] },
+  ],
+  code: `extends Camera2D
+class_name Camera
+
+func _process(delta: float) -> void:
+	if is_instance_valid(Global.player):
+		global_position = Global.player.global_position`
+},
+
+{
+  id: 'health_component', name: 'HealthComponent', class_name: 'HealrhComponent', file: 'scripts/health_component.gd', category: 'component', base: 'Node',
+  summary: '<strong>生命值组件</strong>：独立管理最大/当前生命，负责初始化、受伤（扣血+下限保护）、治疗（上限钳制）、死亡（释放单位）。通过 <code>on_health_changed</code>/<code>on_unit_hit</code>/<code>on_unit_died</code> 三个信号对外广播，血条、飘字等均订阅于此，实现逻辑与表现解耦。（类名 <code>HealrhComponent</code> 为原代码拼写。）',
+  methods: [
+    { name: 'setup', sig: 'setup(stats: UnitStats) -> void', desc: '用 <code>UnitStats</code> 初始化最大生命与当前生命，并立即广播一次血量变化（让血条初始化）。', params: [ { n: 'stats', t: 'UnitStats', d: '单位属性资源，提供 health 上限' } ] },
+    { name: 'take_damage', sig: 'take_damage(value: float) -> void', desc: '扣血：已归零则忽略；扣血后用 <code>max()</code> 保证不低于 0；广播受击与血量变化；归零时广播死亡并调用 <code>die()</code>。', params: [ { n: 'value', t: 'float', d: '伤害数值' } ] },
+    { name: 'heal', sig: 'heal(amount: float) -> void', desc: '治疗：仅存活时生效；加血后用 <code>min()</code> 钳制到上限；广播血量变化。', params: [ { n: 'amount', t: 'float', d: '治疗量' } ] },
+    { name: 'die', sig: 'die() -> void', desc: '死亡处理：通过 <code>owner.queue_free()</code> 释放所属单位节点。', params: [] },
+  ],
+  code: `extends Node
+class_name HealrhComponent
+
+signal on_unit_hit
+signal on_unit_died
+signal on_health_changed(current:float,max:float)
+
+var max_health := 1.0
+var current_health := 1.0
+
+func setup(stats:UnitStats) -> void:
+	max_health = stats.health
+	current_health = max_health
+	on_health_changed.emit(current_health,max_health)
+
+func take_damage(value: float) -> void:
+	if current_health<=0:
+		return
+
+	current_health -= value
+	current_health = max(current_health,0)
+
+	on_unit_hit.emit()
+	on_health_changed.emit(current_health,max_health)
+
+	if current_health <= 0:
+		current_health=0
+		on_unit_died.emit()
+		die()
+
+func heal(amount: float) -> void:
+	if current_health <= 0:
+		return
+
+	current_health += amount
+	current_health = min(current_health,max_health)
+	on_health_changed.emit(current_health,max_health)
+
+func die() -> void:
+	owner.queue_free()`
+},
+
+{
+  id: 'hitbox_component', name: 'HitboxComponent', class_name: 'HitboxComponent', file: 'scripts/hitbox_component.gd', category: 'component', base: 'Area2D',
+  summary: '<strong>攻击判定盒</strong>（Area2D）：由敌人持有，用于「命中」玩家。碰撞层 <code>HitboxEnemy</code>，监测玩家受击盒。可开关监测、可配置伤害/暴击/击退/来源；进入目标 <code>HurtboxComponent</code> 时发出 <code>on_hit_hurtbox</code> 信号。',
+  methods: [
+    { name: 'enable', sig: 'enable() -> void', desc: '开启碰撞监测（<code>monitoring</code> 与 <code>monitorable</code> 均置 true），用 <code>set_deferred</code> 延迟到物理安全期执行。', params: [] },
+    { name: 'disable', sig: 'disable() -> void', desc: '关闭碰撞监测（两标志均置 false）。', params: [] },
+    { name: 'setup', sig: 'setup(damage: float, critical: bool, knockback: float, source: Node2D) -> void', desc: '配置攻击参数：伤害、是否暴击、击退力度、伤害来源节点。', params: [ { n: 'damage', t: 'float', d: '基础伤害' }, { n: 'critical', t: 'bool', d: '是否暴击（飘字颜色据此区分）' }, { n: 'knockback', t: 'float', d: '击退力度' }, { n: 'source', t: 'Node2D', d: '攻击来源单位' } ] },
+    { name: '_on_area_entered', sig: '_on_area_entered(area: Area2D) -> void', desc: '碰撞回调：若进入的是 <code>HurtboxComponent</code>，发出 <code>on_hit_hurtbox</code> 信号并打印目标名（调试用）。', params: [ { n: 'area', t: 'Area2D', d: '进入本盒的区域' } ] },
+  ],
+  code: `extends Area2D
+class_name HitboxComponent
+
+signal  on_hit_hurtbox(hurtbox:HurtboxComponent)
+
+var damage := 1.0
+var critical := false
+var knockback_power := 0.0
+var source : Node2D
+
+func enable() -> void:
+	set_deferred("monitoring",true)
+	set_deferred("monitorable",true)
+
+func disable() -> void:
+	set_deferred("monitoring",false)
+	set_deferred("monitorable",false)
+
+func setup(damage:float,critical:bool,knockback:float,source:Node2D)->void:
+	self.damage = damage
+	self.critical = critical
+	knockback_power = knockback
+	self.source = source
+
+
+
+func _on_area_entered(area: Area2D) -> void:
+	if area is HurtboxComponent:
+		on_hit_hurtbox.emit(area)
+		print(area.owner.name)`
+},
+
+{
+  id: 'hurtbox_component', name: 'HurtboxComponent', class_name: 'HurtboxComponent', file: 'scripts/hurtbox_component.gd', category: 'component', base: 'Area2D',
+  summary: '<strong>受击判定盒</strong>（Area2D）：由单位（玩家/敌人）持有，用于「被命中」。碰撞层 <code>HurtboxPlayer</code>（或敌方对应层），监测攻击盒；检测到 <code>HitboxComponent</code> 时发出 <code>on_damaged</code> 信号，由 <code>Unit</code> 统一接住处理。',
+  methods: [
+    { name: '_on_area_entered', sig: '_on_area_entered(area: Area2D) -> void', desc: '碰撞回调：若进入的是 <code>HitboxComponent</code>，发出 <code>on_damaged</code> 信号（携带攻击盒）。', params: [ { n: 'area', t: 'Area2D', d: '进入本盒的攻击盒' } ] },
+  ],
+  code: `extends Area2D
+class_name  HurtboxComponent
+
+signal on_damaged(hitbox:HitboxComponent)
+
+
+
+
+func _on_area_entered(area: Area2D) -> void:
+	if area is HitboxComponent:
+		on_damaged.emit(area)`
+},
+
+{
+  id: 'floating_text', name: 'FloatingText', class_name: 'FloatingText', file: 'scripts/floating_text.gd', category: 'ui', base: 'Node2D',
+  summary: '<strong>伤害/格挡飘字</strong>特效节点。用 <code>Tween</code> 播放「放大弹出 → 上浮停留 → 缩小淡出」动画，结束后自毁。由 <code>Arena</code> 实例化并使用。',
+  methods: [
+    { name: 'setup', sig: 'setup(value: String, color: Color) -> void', desc: '设置飘字文字与颜色，并以 <code>await tween.finished</code> 编排动画：并行「缩放到随机尺寸 + 上移 15px」（0.4s）→ 停留 0.5s → 并行「缩到 0 + 淡出」（0.4s）→ <code>queue_free()</code> 自毁。附带随机旋转与随机缩放因子。', params: [ { n: 'value', t: 'String', d: '显示的文字（如伤害数值 / "Blocked!"）' }, { n: 'color', t: 'Color', d: '文字颜色（普通/暴击/格挡）' } ] },
+  ],
+  code: `extends Node2D
+class_name FloatingText
+
+@onready var value_label: Label = $ValueLabel
+
+func setup(value: String,color: Color) -> void:
+	value_label.text = value
+	modulate = color
+	scale = Vector2.ZERO
+
+	rotation = deg_to_rad(randf_range(-10,10))
+	var random_scale := randf_range(0.5,1.6)
+
+	var tween := create_tween()
+
+	tween.parallel().tween_property(self, "scale", random_scale * Vector2.ONE, 0.4)
+	tween.parallel().tween_property(self,"global_position", global_position + Vector2.UP * 15, 0.4)
+
+	tween.tween_interval(0.5)
+
+	tween.parallel().tween_property(self,"scale",Vector2.ZERO,0.4)
+	tween.parallel().tween_property(self,"modulate",0.0,0.4)
+
+	await  tween.finished
+	queue_free()`
+},
+
+{
+  id: 'health_bar', name: 'HealthBar', class_name: 'HealthBar', file: 'scripts/health_bar.gd', category: 'ui', base: 'Control',
+  summary: '<strong>单位头顶血条</strong> UI（Control）。用 <code>@export</code> 配色可让每个单位定制颜色；监听 <code>HealthComponent.on_health_changed</code> 信号，把生命比例反映到进度条与数值文本上。',
+  methods: [
+    { name: '_ready', sig: '_ready() -> void', desc: '复制进度条主题样式盒（background/fill）并覆盖为导出的背景色与填充色，实现血条配色定制。', params: [] },
+    { name: 'update_bar', sig: 'update_bar(value: float, health: float) -> void', desc: '更新进度条数值（0~1 比例）与血条上的血量文本。', params: [ { n: 'value', t: 'float', d: '生命比例（0~1）' }, { n: 'health', t: 'float', d: '当前生命数值（显示文本）' } ] },
+    { name: '_on_health_component_on_health_changed', sig: '_on_health_component_on_health_changed(current: float, max: float) -> void', desc: '接收血量变化信号：计算比例 <code>current/max</code> 并刷新血条。', params: [ { n: 'current', t: 'float', d: '当前生命' }, { n: 'max', t: 'float', d: '最大生命' } ] },
+  ],
+  code: `extends Control
+class_name HealthBar
+
+@export var back_color: Color
+@export var fill_color: Color
+
+@onready var progress_bar: ProgressBar = $ProgressBar
+@onready var health_label: Label = $HealthAmount
+
+
+func _ready() -> void:
+	var back_style := progress_bar.get_theme_stylebox("background").duplicate()
+	back_style.bg_color = back_color
+
+	var fill_style := progress_bar.get_theme_stylebox("fill").duplicate()
+	fill_style.bg_color = fill_color
+
+	progress_bar.add_theme_stylebox_override("background",back_style)
+	progress_bar.add_theme_stylebox_override("fill",fill_style)
+
+
+func update_bar(value: float,health: float) -> void:
+	progress_bar.value = value
+	health_label.text = str(health)
+
+
+func _on_health_component_on_health_changed(current: float, max: float) -> void:
+	var value = current / max
+	update_bar(value,current)`
+},
+
+{
+  id: 'trail', name: 'Trail', class_name: 'Trail', file: 'scripts/trail.gd', category: 'player', base: 'Line2D',
+  summary: '<strong>冲刺残影拖尾</strong>：玩家冲刺时记录其路径点，用 <code>Line2D</code> 绘制一条随时间变短的尾巴，营造速度感。由 <code>Player.start_dash()</code> 触发。',
+  methods: [
+    { name: '_process', sig: '_process(delta: float) -> void', desc: '激活时每帧把玩家当前位置追加到点数组，超出 <code>trail_length</code> 时丢弃队首，刷新 Line2D 的点集。', params: [ { n: 'delta', t: 'float', d: '距上一帧的时间（秒）' } ] },
+    { name: 'start_trail', sig: 'start_trail() -> void', desc: '开始残影：置激活、清空点、启动残影计时器（<code>trail_duration</code>）。', params: [] },
+    { name: '_on_trail_timer_timeout', sig: '_on_trail_timer_timeout() -> void', desc: '残影结束：停用并清空所有点。', params: [] },
+  ],
+  code: `extends Line2D
+class_name Trail
+
+@export var player:Player
+@export var trail_length:=25
+@export var trail_duration:=0.5
+
+@onready var trail_timer: Timer = %TrailTimer
+
+
+var points_array: Array[Vector2]=[]
+var is_active:= false
+
+func _process(delta: float) -> void:
+	if not is_active:
+		return
+	points_array.append(player.global_position)
+	if points_array.size() > trail_length:
+		points_array.pop_front()
+
+	points = points_array
+
+func start_trail() -> void:
+	is_active = true
+	clear_points()
+	points_array.clear()
+	trail_timer.start(trail_duration)
+
+
+func _on_trail_timer_timeout() -> void:
+	is_active = false
+	clear_points()
+	points_array.clear()
+	`
+},
+
+{
+  id: 'global', name: 'Global', class_name: '', file: 'autoloads/global.gd', category: 'scene', base: 'Node (Autoload 单例)',
+  summary: '<strong>全局单例</strong>（自动加载），跨模块共享的「广播站」：持有当前玩家引用 <code>player</code>，预加载闪光材质与飘字场景；提供概率判定工具；用两个全局信号 <code>on_create_block_text</code> / <code>on_create_damage_text</code> 通知 Arena 生成飘字，避免 Unit 直接依赖 Arena。',
+  methods: [
+    { name: 'get_chance_sucesss', sig: 'get_chance_sucesss(chance: float) -> bool', desc: '概率判定：生成 [0,1) 随机数，小于给定 <code>chance</code> 则返回 true。用于格挡等随机事件。注意函数名拼写为 <code>sucesss</code>（多一个 s），是原代码的历史遗留。', params: [ { n: 'chance', t: 'float', d: '命中概率（0~1，调用方传 block_chance/100）' } ] },
+  ],
+  code: `extends Node
+
+signal on_create_block_text(unit:Node2D)
+signal on_create_damage_text(unit:Node2D,hitbox:HitboxComponent)
+
+const FLASH_MATERIAL = preload("uid://d1abqiwant8w4")
+const FLOATING_TEXT = preload("uid://wjbj6p2vedis")
+
+var player:Player
+
+func get_chance_sucesss(chance: float) -> bool:
+	var random := randf_range(0,1.0)
+	if random < chance:
+		return true
+	return false`
+},
+
+{
+  id: 'unit_stats', name: 'UnitStats', class_name: 'UnitStats', file: 'resources/units/unit_stats.gd', category: 'core', base: 'Resource',
+  summary: '<strong>单位属性配置资源</strong>（Resource）。定义玩家/敌人的基础数值字段：名称、类型（玩家/敌人）、图标、生命、伤害、速度、幸运、格挡率、金币掉落，以及每波成长系数。以 <code>.tres</code> 资源形式为不同角色复用，实现「数据与逻辑分离」。',
+  methods: [],
+  code: `extends Resource
+class_name UnitStats
+
+enum UnitType{
+	PLAYER,
+	ENEMY
+}
+
+@export var name: String
+@export var type: UnitType
+@export var icon: Texture2D
+@export var health:=1
+@export var health_increase_per_wave:=1.0
+@export var damage:=1
+@export var damage_increase_per_wave:=1.0
+@export var speed:=300
+@export var luck:=1.0
+@export var block_chance:=0.0
+@export var gold_drop:=1.0`
+},
+];
+
+/* ================= 关系（边） =================
+   type: extends | ref | signal ; label 为关系含义 */
+const EDGES = [
+  // 继承
+  { s: 'player', t: 'unit', type: 'extends', label: 'extends' },
+  { s: 'enemy',  t: 'unit', type: 'extends', label: 'extends' },
+  // 引用（来源 → 依赖目标）
+  { s: 'unit',    t: 'unit_stats',       type: 'ref', label: 'stats' },
+  { s: 'unit',    t: 'health_component', type: 'ref', label: '血量组件' },
+  { s: 'unit',    t: 'global',           type: 'ref', label: 'Global' },
+  { s: 'player',  t: 'trail',            type: 'ref', label: '残影' },
+  { s: 'enemy',   t: 'global',           type: 'ref', label: 'Global.player' },
+  { s: 'global',  t: 'player',           type: 'ref', label: 'player' },
+  { s: 'global',  t: 'hitbox_component', type: 'ref', label: '信号参数' },
+  { s: 'arena',   t: 'global',           type: 'ref', label: 'Global' },
+  { s: 'arena',   t: 'player',           type: 'ref', label: 'player' },
+  { s: 'arena',   t: 'floating_text',    type: 'ref', label: '生成飘字' },
+  { s: 'camera',  t: 'global',           type: 'ref', label: 'Global.player' },
+  { s: 'hitbox_component', t: 'hurtbox_component', type: 'ref', label: '命中目标' },
+  { s: 'hurtbox_component', t: 'hitbox_component', type: 'ref', label: '检测攻击' },
+  { s: 'trail',   t: 'player',           type: 'ref', label: 'player' },
+  // 信号流（发送方 → 接收方）
+  { s: 'hurtbox_component', t: 'unit',        type: 'signal', label: 'on_damaged' },
+  { s: 'health_component',  t: 'health_bar',  type: 'signal', label: 'on_health_changed' },
+  { s: 'global',            t: 'arena',       type: 'signal', label: '飘字信号' },
+];
+
+/* ================= 渲染准备 ================= */
+const byId = Object.fromEntries(MODULES.map(m => [m.id, m]));
+
+// 构建侧边栏
+function buildSidebar() {
+  const sb = document.getElementById('sidebar');
+  const groups = {};
+  MODULES.forEach(m => { (groups[m.category] ||= []).push(m); });
+  const order = ['core','player','enemy','component','ui','scene'];
+  sb.innerHTML = order.map(cat => {
+    const list = groups[cat];
+    if (!list) return '';
+    const items = list.map(m => `
+      <div class="mod-item cat-${m.category}" data-id="${m.id}">
+        <span class="dot"></span>
+        <span class="name">${m.name}</span>
+        <span class="file">${m.file.split('/').pop()}</span>
+      </div>`).join('');
+    return `<div class="group"><h2>${CATS[cat].label}</h2>${items}</div>`;
+  }).join('');
+}
+
+// 构建图例
+function buildLegend() {
+  const bar = document.getElementById('legendBar');
+  const cats = Object.entries(CATS).map(([k, c]) =>
+    `<span class="legend cat-${k}"><span class="swatch"></span>${c.label}</span>`).join('');
+  bar.innerHTML = `
+    <span style="font-size:12px;color:var(--text-muted);font-weight:600;margin-right:4px;">模块分类</span>
+    ${cats}
+    <span style="width:1px;height:16px;background:var(--border);margin:0 4px;"></span>
+    <span class="edge-legend"><span class="line extends"></span>继承</span>
+    <span class="edge-legend"><span class="line ref"></span>引用</span>
+    <span class="edge-legend"><span class="line signal"></span>信号</span>`;
+}
+
+/* ================= 语法高亮 ================= */
+const KEYWORDS = new Set(['extends','class_name','func','var','const','if','else','elif','return','for','in','while','await','signal','enum','pass','true','false','null','self','super','not','and','or','is','void','static','match','break','continue']);
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function highlight(code){
+  let out = '', i = 0, n = code.length;
+  while (i < n) {
+    const c = code[i];
+    if (c === '#') {                      // 注释
+      let j = i; while (j < n && code[j] !== '\n') j++;
+      out += '<span class="cm">' + esc(code.slice(i,j)) + '</span>'; i = j;
+    } else if (c === '"') {               // 字符串
+      let j = i + 1; while (j < n && code[j] !== '"' && code[j] !== '\n') j++;
+      j = Math.min(j + 1, n);
+      out += '<span class="st">' + esc(code.slice(i,j)) + '</span>'; i = j;
+    } else if (c === '$' || c === '%') {  // 节点引用
+      let j = i + 1; while (j < n && /[A-Za-z0-9_/]/.test(code[j])) j++;
+      out += '<span class="nd">' + esc(code.slice(i,j)) + '</span>'; i = j;
+    } else if (c === '@') {               // @export / @onready
+      let j = i + 1; while (j < n && /[A-Za-z_]/.test(code[j])) j++;
+      out += '<span class="ann">' + esc(code.slice(i,j)) + '</span>'; i = j;
+    } else if (/[A-Za-z_]/.test(c)) {     // 标识符 / 关键字 / 类型
+      let j = i; while (j < n && /[A-Za-z0-9_]/.test(code[j])) j++;
+      const w = code.slice(i, j);
+      if (KEYWORDS.has(w)) out += '<span class="kw">' + esc(w) + '</span>';
+      else if (/^[A-Z]/.test(w)) out += '<span class="type">' + esc(w) + '</span>';
+      else out += esc(w);
+      i = j;
+    } else if (/[0-9]/.test(c)) {         // 数字
+      let j = i; while (j < n && /[0-9.]/.test(code[j])) j++;
+      out += '<span class="num">' + esc(code.slice(i,j)) + '</span>'; i = j;
+    } else {
+      out += esc(c); i++;
+    }
+  }
+  return out;
+}
+
+/* ================= 详情面板 ================= */
+let selectedModuleId = null;
+let selectedMethod = null;
+
+function methodLineRange(code, name) {
+  const lines = code.split('\n');
+  const start = lines.findIndex(l => l.includes('func ' + name + '(') || l.includes('func ' + name + ' '));
+  if (start < 0) return null;
+  let end = lines.length - 1;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^func\s/.test(lines[i])) { end = i - 1; break; }
+  }
+  return { start, end };
+}
+
+function renderDetail(m) {
+  const el = document.getElementById('detail');
+  el.className = 'detail cat-' + m.category;   // 让 --c 级联到代码高亮
+  const cat = CATS[m.category];
+  const baseLine = m.base ? `<div class="classline">extends <b>${esc(m.base)}</b>${m.class_name ? ' · class_name <b>' + esc(m.class_name) + '</b>' : ''}</div>` : '';
+  const methodChips = m.methods.length
+    ? m.methods.map(mt => {
+        const isSel = selectedMethod === mt.name;
+        return `<button class="method-chip ${isSel ? 'active' : ''}" data-m="${mt.name}"><span class="mn">${esc(mt.name)}</span><span class="ret">${esc(mt.sig.slice(mt.name.length))}</span></button>`;
+      }).join('')
+    : '<div style="color:var(--text-muted);font-size:12.5px;">（无方法，纯数据资源）</div>';
+
+  const lines = m.code.split('\n');
+  const range = selectedMethod ? methodLineRange(m.code, selectedMethod) : null;
+  const codeHtml = lines.map((ln, idx) => {
+    const hl = range && idx >= range.start && idx <= range.end ? ' hl' : '';
+    return `<div class="codeline${hl}" data-line="${idx}"><span class="ln">${idx+1}</span><span class="ct">${highlight(ln) || ' '}</span></div>`;
+  }).join('');
+
+  const activeMethod = m.methods.find(mt => mt.name === selectedMethod);
+  const methodCard = activeMethod ? `
+    <div class="method-card">
+      <div class="sig">${esc(activeMethod.sig)}</div>
+      <div class="desc">${activeMethod.desc}</div>
+      ${activeMethod.params && activeMethod.params.length ? '<div class="params">' + activeMethod.params.map(p =>
+        `<div class="param"><code>${esc(p.n)}</code> : ${esc(p.t)} — ${p.d}</div>`).join('') + '</div>' : ''}
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="detail-head cat-${m.category}">
+      <span class="badge">${esc(cat.label)}</span>
+      <h1>${esc(m.name)}</h1>
+      ${baseLine}
+      <div class="path">${esc(m.file)}</div>
+    </div>
+    <section><h3>模块功能</h3><div class="summary">${m.summary}</div></section>
+    <section><h3>方法（${m.methods.length}）</h3>${methodChips}</section>
+    <section class="codebox"><h3 style="padding-left:18px;margin-top:14px;">源码</h3>${methodCard}<pre>${codeHtml}</pre></section>`;
+
+  el.querySelectorAll('.method-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedMethod = chip.dataset.m;
+      renderDetail(m);
+      // 滚动到对应方法
+      const r = methodLineRange(m.code, selectedMethod);
+      if (r) {
+        const lineEl = el.querySelector(`.codeline[data-line="${r.start}"]`);
+        if (lineEl) lineEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+}
+
+function selectModule(id) {
+  selectedModuleId = id;
+  selectedMethod = null;
+  const m = byId[id];
+  renderDetail(m);
+  document.querySelectorAll('.mod-item').forEach(i => i.classList.toggle('active', i.dataset.id === id));
+  updateGraphSelection();
+}
+
+/* ================= 力导向图 ================= */
+const svg = document.getElementById('graph');
+const nodes = MODULES.map(m => ({ id: m.id, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null }));
+const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+// 初始布局：按分类扇形排布
+(function initLayout() {
+  const order = ['core','player','enemy','component','ui','scene'];
+  const cx = 0, cy = 0, R = 210;
+  order.forEach((cat, ci) => {
+    const members = nodes.filter(n => byId[n.id].category === cat);
+    const baseAngle = (ci / order.length) * Math.PI * 2 - Math.PI / 2;
+    members.forEach((nd, mi) => {
+      const spread = (mi - (members.length - 1) / 2) * 0.32;
+      const a = baseAngle + spread;
+      const rr = R + (mi % 2) * 40;
+      nd.x = cx + Math.cos(a) * rr;
+      nd.y = cy + Math.sin(a) * rr;
+    });
+  });
+})();
+
+let svgW = 0, svgH = 0, cx = 0, cy = 0, dragging = null;
+
+function resize() {
+  const r = svg.getBoundingClientRect();
+  svgW = r.width; svgH = r.height;
+  cx = svgW / 2; cy = svgH / 2;
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+}
+window.addEventListener('resize', resize);
+
+function nodeW(m) { return Math.max(76, m.name.length * 9 + 30); }
+const NODE_H = 40;
+
+function buildSvg() {
+  resize();
+  // defs: 箭头
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-muted)"></path>
+    </marker>
+    <marker id="arrow-ext" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+    </marker>`;
+  svg.appendChild(defs);
+
+  // 边
+  const edgeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  edgeLayer.id = 'edges';
+  EDGES.forEach(e => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.classList.add('edge-group'); g.dataset.s = e.s; g.dataset.t = e.t;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.classList.add('edge', e.type);
+    line.setAttribute('marker-end', e.type === 'extends' ? 'url(#arrow-ext)' : 'url(#arrow)');
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lbl.classList.add('edge-label');
+    lbl.textContent = e.label;
+    g.appendChild(line); g.appendChild(lbl);
+    edgeLayer.appendChild(g);
+  });
+  svg.appendChild(edgeLayer);
+
+  // 节点
+  const nodeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  nodeLayer.id = 'nodes';
+  nodes.forEach(n => {
+    const m = byId[n.id];
+    const w = nodeW(m);
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.classList.add('node', 'cat-' + m.category);
+    g.dataset.id = n.id;
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+
+    const body = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    body.setAttribute('x', -w/2); body.setAttribute('y', -NODE_H/2);
+    body.setAttribute('width', w); body.setAttribute('height', NODE_H);
+    body.setAttribute('rx', 9);
+    body.setAttribute('fill', 'var(--surface-1)');
+    body.setAttribute('stroke', 'var(--c)');
+    g.appendChild(body);
+
+    const name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    name.classList.add('name');
+    name.setAttribute('x', 0); name.setAttribute('y', -2);
+    name.setAttribute('text-anchor', 'middle'); name.setAttribute('dominant-baseline', 'middle');
+    name.textContent = m.name;
+    g.appendChild(name);
+
+    const kind = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    kind.classList.add('kind');
+    kind.setAttribute('x', 0); kind.setAttribute('y', 13);
+    kind.setAttribute('text-anchor', 'middle'); kind.setAttribute('dominant-baseline', 'middle');
+    kind.textContent = m.base.split(' ')[0];
+    g.appendChild(kind);
+
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    ring.classList.add('ring');
+    ring.setAttribute('x', -w/2 - 3); ring.setAttribute('y', -NODE_H/2 - 3);
+    ring.setAttribute('width', w + 6); ring.setAttribute('height', NODE_H + 6);
+    ring.setAttribute('rx', 11); ring.setAttribute('opacity', 0);
+    g.appendChild(ring);
+
+    g.addEventListener('click', () => selectModule(n.id));
+    g.addEventListener('mousedown', (ev) => { dragging = n; ev.preventDefault(); });
+    g.addEventListener('mouseenter', () => highlightNeighbors(n.id, true));
+    g.addEventListener('mouseleave', () => highlightNeighbors(n.id, false));
+    nodeLayer.appendChild(g);
+  });
+  svg.appendChild(nodeLayer);
+
+  // 拖拽
+  svg.addEventListener('mousemove', (ev) => {
+    if (!dragging) return;
+    const r = svg.getBoundingClientRect();
+    const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    dragging.x = px; dragging.y = py;
+    dragging.fx = px; dragging.fy = py;
+    dragging.vx = 0; dragging.vy = 0;
+  });
+  window.addEventListener('mouseup', () => {
+    if (dragging) { dragging.fx = null; dragging.fy = null; dragging = null; }
+  });
+}
+
+function highlightNeighbors(id, on) {
+  const neighbors = new Set([id]);
+  EDGES.forEach(e => { if (e.s === id) neighbors.add(e.t); if (e.t === id) neighbors.add(e.s); });
+  document.querySelectorAll('.node').forEach(g => {
+    g.classList.toggle('dim', on && !neighbors.has(g.dataset.id));
+  });
+  document.querySelectorAll('.edge-group').forEach(g => {
+    const rel = g.dataset.s === id || g.dataset.t === id;
+    g.classList.toggle('dim', on && !rel);
+    g.classList.toggle('hl', on && rel);
+  });
+}
+
+function updateGraphSelection() {
+  document.querySelectorAll('.node').forEach(g => {
+    const sel = g.dataset.id === selectedModuleId;
+    g.classList.toggle('selected', sel);
+    g.querySelector('.ring').setAttribute('opacity', sel ? 1 : 0);
+  });
+  document.querySelectorAll('.edge-group').forEach(g => {
+    const rel = g.dataset.s === selectedModuleId || g.dataset.t === selectedModuleId;
+    g.classList.toggle('hl', !!selectedModuleId && rel);
+    g.classList.toggle('dim', !!selectedModuleId && !rel);
+  });
+}
+
+/* ---------- 力模拟 ---------- */
+function tick() {
+  const rep = 9000, springLen = 130, springK = 0.04, centerK = 0.012, damp = 0.82;
+  // 斥力
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      let dx = a.x - b.x, dy = a.y - b.y;
+      let d2 = dx*dx + dy*dy; if (d2 < 1) d2 = 1;
+      const d = Math.sqrt(d2);
+      const f = rep / d2;
+      const fx = (dx / d) * f, fy = (dy / d) * f;
+      a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+    }
+  }
+  // 弹簧
+  EDGES.forEach(e => {
+    const a = nodeMap[e.s], b = nodeMap[e.t];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+    const f = (d - springLen) * springK;
+    const fx = (dx / d) * f, fy = (dy / d) * f;
+    a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+  });
+  // 向心 + 边界
+  nodes.forEach(n => {
+    if (n.fx !== null) { n.x = n.fx; n.y = n.fy; n.vx = 0; n.vy = 0; return; }
+    n.vx += (cx - n.x) * centerK;
+    n.vy += (cy - n.y) * centerK;
+    n.vx *= damp; n.vy *= damp;
+    n.x += n.vx; n.y += n.vy;
+    n.x = Math.max(60, Math.min(svgW - 60, n.x));
+    n.y = Math.max(60, Math.min(svgH - 60, n.y));
+  });
+}
+
+function draw() {
+  // 边
+  document.querySelectorAll('.edge-group').forEach(g => {
+    const a = nodeMap[g.dataset.s], b = nodeMap[g.dataset.t];
+    const line = g.querySelector('line');
+    const lbl = g.querySelector('.edge-label');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    lbl.setAttribute('x', (a.x + b.x) / 2); lbl.setAttribute('y', (a.y + b.y) / 2 - 4);
+    lbl.setAttribute('text-anchor', 'middle');
+  });
+  // 节点
+  document.querySelectorAll('.node').forEach(g => {
+    const n = nodeMap[g.dataset.id];
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+  });
+}
+
+let running = true;
+function loop() {
+  if (running && !dragging) { for (let i = 0; i < 4; i++) tick(); }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ================= 启动 ================= */
+buildSidebar();
+buildLegend();
+buildSvg();
+resize();
+selectModule('unit');
+requestAnimationFrame(loop);
+
+// 主题切换
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+});
+
+// 侧边栏点击
+document.querySelectorAll('.mod-item').forEach(item => {
+  item.addEventListener('click', () => selectModule(item.dataset.id));
+});
+
+// 点击空白取消选中
+svg.addEventListener('click', (ev) => {
+  if (ev.target === svg) { selectedModuleId = null; updateGraphSelection(); }
+});
+</script>
+</body>
+</html>

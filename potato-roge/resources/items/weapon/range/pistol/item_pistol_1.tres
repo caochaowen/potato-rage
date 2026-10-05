@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemWeapon" format=3 uid="uid://on2iapoty0p8"]
+
+[ext_resource type="Texture2D" uid="uid://bbsd0o1wllf0p" path="res://asserts/sprites/Weapons/Range/WeaponPistol.png" id="1_pcluj"]
+[ext_resource type="PackedScene" uid="uid://lntlmdsg5jep" path="res://scenes/weapon/range/weapon_pistol.tscn" id="2_kcdwi"]
+[ext_resource type="Script" uid="uid://5jtk8tpn4vw7" path="res://scripts/item_weapon.gd" id="3_7hjlj"]
+[ext_resource type="Resource" uid="uid://2x3b6qmoiyrv" path="res://resources/items/weapon/range/pistol/stats_pistol_1.tres" id="4_kcdwi"]
+
+[resource]
+script = ExtResource("3_7hjlj")
+scene = ExtResource("2_kcdwi")
+stats = ExtResource("4_kcdwi")
+item_name = "pisorl1"
+item_icon = ExtResource("1_pcluj")
+item_cost = 15
+metadata/_custom_type_script = "uid://5jtk8tpn4vw7"

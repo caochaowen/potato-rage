@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://y4hh657wxw60"]
+
+[ext_resource type="Script" uid="uid://djkf1c3mv0hp1" path="res://scenes/weapon/weapon.gd" id="1_8b18s"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_8b18s"]
+radius = 74.02702
+
+[node name="WeaponBase" type="Node2D" unique_id=1644235485]
+script = ExtResource("1_8b18s")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1036077356]
+scale = Vector2(0.5, 0.5)
+
+[node name="RangeArea" type="Area2D" parent="." unique_id=1474202122]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RangeArea" unique_id=1825018463]
+unique_name_in_owner = true
+shape = SubResource("CircleShape2D_8b18s")
+
+[node name="CooldownTimer" type="Timer" parent="." unique_id=457478327]
+one_shot = true
+
+[node name="WeaponBehavior" type="Node2D" parent="." unique_id=775150380]
+
+[connection signal="area_entered" from="RangeArea" to="." method="_on_range_area_area_entered"]
+[connection signal="area_exited" from="RangeArea" to="." method="_on_range_area_area_exited"]

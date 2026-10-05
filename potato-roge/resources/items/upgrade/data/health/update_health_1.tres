@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemUpgrade" format=3 uid="uid://dxboxraeeuceo"]
+
+[ext_resource type="Texture2D" uid="uid://513vy8yuf2c3" path="res://asserts/sprites/Upgrades/6.png" id="1_rckn4"]
+[ext_resource type="Script" uid="uid://kwxiathf6c6p" path="res://resources/items/upgrade/item_upgrade.gd" id="2_uyn3d"]
+
+[resource]
+script = ExtResource("2_uyn3d")
+value = 1.0
+description = "+1"
+stat_id = "health"
+item_name = "Health"
+item_icon = ExtResource("1_rckn4")
+item_type = 1
+metadata/_custom_type_script = "uid://kwxiathf6c6p"

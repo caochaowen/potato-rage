@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="WeaponStats" format=3 uid="uid://2x3b6qmoiyrv"]
+
+[ext_resource type="Script" uid="uid://dykkwq0grks3l" path="res://scripts/weapon_stats.gd" id="1_3i8bm"]
+[ext_resource type="PackedScene" uid="uid://bvyf3btogwr35" path="res://scenes/projectile/projectile_pistol.tscn" id="1_qr7sw"]
+
+[resource]
+script = ExtResource("1_3i8bm")
+max_range = 600
+projectile_scene = ExtResource("1_qr7sw")
+metadata/_custom_type_script = "uid://dykkwq0grks3l"
