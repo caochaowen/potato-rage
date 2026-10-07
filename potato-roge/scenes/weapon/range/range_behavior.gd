@@ -27,4 +27,15 @@ func creat_projectile() -> void:
 	instance.global_position = muzzle.global_position
 	
 	var velocity := Vector2.RIGHT.rotated(weapon.rotation) * weapon.data.stats.projectile_speed
-	instance.set_projectile(velocity,get_damage(),critical,weapon.data.stats.knockback,weapon.get_parent())
+	instance.set_projectile(
+		velocity,
+		get_damage(),
+		critical,
+		weapon.data.stats.knockback,
+		weapon.get_parent(),
+		weapon.data.stats.trajectory_type,   # 新增：弹道类型
+		weapon.closest_target                # 新增：追踪目标（Weapon 已维护）
+	)
+	instance.drag_factor = weapon.data.stats.homing_drag_factor
+	instance.turn_rate = weapon.data.stats.homing_turn_rate
+	instance.bezier_control_multiplier = weapon.data.stats.bezier_control_multiplier

@@ -7,4 +7,7 @@
 script = ExtResource("1_3i8bm")
 max_range = 600
 projectile_scene = ExtResource("1_qr7sw")
+projectile_speed = 300
+trajectory_type = 4
+homing_turn_rate = 0.25
 metadata/_custom_type_script = "uid://dykkwq0grks3l"

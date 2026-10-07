@@ -21,11 +21,13 @@ func _ready() -> void:
 	super._ready()
 	dash_timer.wait_time = dash_duration
 	dash_cooldown_timer.wait_time = dash_cooldown
-	add_weapon(preload("uid://bv0o060v0ikpp"))
+	#add_weapon(preload("uid://bv0o060v0ikpp"))
+	#add_weapon(preload("uid://lntlmdsg5jep"))
+	
 	#add_weapon(preload("uid://bv0o060v0ikpp"))
 	#add_weapon(preload("uid://bv0o060v0ikpp"))
 	#add_weapon(preload("uid://bv0o060v0ikpp"))
-	#add_weapon(preload("uid://on2iapoty0p8"))
+	add_weapon(preload("uid://on2iapoty0p8"))
 	
 func _process(delta: float) -> void:
 	if Global.game_paused: return
